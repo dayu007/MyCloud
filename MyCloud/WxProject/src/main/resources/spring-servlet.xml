@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans    
+                        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd    
+                        http://www.springframework.org/schema/context    
+                        http://www.springframework.org/schema/context/spring-context-4.0.xsd    
+                        http://www.springframework.org/schema/mvc    
+                        http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+	<!-- 自动扫描该包，获取注解支持 -->
+	<!-- 开启扫描注解支持 -->
+	<context:component-scan base-package="mis"
+		use-default-filters="false">
+		<context:include-filter expression="org.springframework.stereotype.Controller"
+			type="annotation" />
+	</context:component-scan>
+
+
+	<!--避免IE执行AJAX时，返回JSON出现下载文件 -->
+	<bean id="mappingJacksonHttpMessageConverter"
+		class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/html;charset=UTF-8</value>
+				<value>application/json;charset=utf-8</value>
+			</list>
+		</property>
+	</bean>
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="mappingJacksonHttpMessageConverter" /> <!-- JSON转换器 -->
+			</list>
+		</property>
+	</bean>
+	
+	
+	<!-- 定义跳转的文件的前后缀 ，视图模式配置 -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<!-- 这里的配置我的理解是自动给后面action的方法return的字符串加上前缀和后缀，变成一个 可用的url地址 -->
+		<property name="prefix" value="/WEB-INF/pages/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+	
+	<!-- 静态资源文件访问 springMVC中不能直接访问静态文件。需要映射成URL路径来进行访问 location="/resources/" 
+		表示可以读取当前项目resources文件夹下以及所有子文件夹下的所有文件 mapping="/resources/** 表示所有已该前缀的访问路径,**表示包括子文件夹。 -->
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+	
+	<mvc:annotation-driven />
+
+	<!-- 配置全局异常 -->
+	<bean
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<!-- 指定哪些异常 值填写 视图名 会优先使用局部异常 -->
+				<prop key="mis/exception/PublicRuntimeException.java">exception</prop>
+				<prop key="java.lang.Exception">exception</prop>
+			</props>
+		</property>
+	</bean>
+
+	<!-- 配置文件上传，如果没有使用文件上传可以不用配置，当然如果不配，那么配置文件中也不必引入上传组件包 -->
+	<!-- <bean id="multipartResolver" class="com.taogongyu.util.ueditor.CommonsMultiparResolver"> 
+		默认编码 <property name="defaultEncoding" value="utf-8" /> 文件大小最大值 <property 
+		name="maxUploadSize" value="20000000" /> 限制上传大小20M 内存中的最大值 <property name="maxInMemorySize" 
+		value="20000000" /> </bean> -->
+</beans>  
