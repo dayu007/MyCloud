@@ -10,7 +10,7 @@ import com.jfinal.core.Controller;
  */
 public class MeigongController extends Controller
 {
-    @ActionKey("/mei")
+//    @ActionKey("/mei")
     public void index()
     {
         System.out.println("MeigongController.index()");

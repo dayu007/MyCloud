@@ -1,4 +1,4 @@
-package demo;
+package config;
 
 import com.jfinal.config.Constants;
 import com.jfinal.config.Handlers;

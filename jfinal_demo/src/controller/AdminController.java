@@ -10,19 +10,19 @@ import com.jfinal.core.Controller;
  */
 public class AdminController extends Controller
 {
-    public String index()
+    public void index()
     {
         // renderText("this is an admin operation!");
-//        render("index.html");
-        return "index.html";
+        render("index.html");
+        // renderText( "this is an admin operation!");
     }
     
-//    @ActionKey("/getuser")
+    // @ActionKey("/getuser")
     public void readAllUser()
     {
         String age = getPara(0);
         String name = getPara(1, "yunxue");
         
-        renderText("do get all user in db!      name:"+name+",age:"+age);
+        renderText("do get all user in db!      name:" + name + ",age:" + age);
     }
 }

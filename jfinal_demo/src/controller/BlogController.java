@@ -20,6 +20,6 @@ public class BlogController extends Controller
        System.out.println("BlogController.getInfo()");
 //        renderText("BlogController.getInfo()");
 //       render("index.html");
-       render("blog.html");
+       renderText("BlogController.getInfo()");
     }
 }

@@ -18,12 +18,12 @@ public class AdminRoutes extends Routes
     @Override
     public void config()
     {
+//        addInterceptor(new AdminInterceptor());
         // 设置页面路径
         // setBaseViewPath("/view/admin");
         add("/admin", AdminController.class);
         add("/admin/user", UserController.class);
         add("/admin/meigong", MeigongController.class);
-        addInterceptor(new AdminInterceptor());
     }
     
 }

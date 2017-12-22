@@ -2,15 +2,17 @@ package domain;
 
 import java.io.Serializable;
 
+import com.jfinal.plugin.activerecord.Model;
+
 /**
  * @author dayu
  * @version 创建时间：2017年12月14日 下午5:11:46
  *          类说明
  */
-public class User implements Serializable
+public class User  extends Model<User>
 {
-    private static final long serialVersionUID = 1059935267295004800L;
-    
+    private static final long serialVersionUID = 2011492398688441829L;
+
     private int userid;
     
     private String username;

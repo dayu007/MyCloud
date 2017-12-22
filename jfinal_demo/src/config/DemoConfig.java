@@ -1,6 +1,4 @@
-package demo;
-
-import org.eclipse.jetty.server.Authentication.User;
+package config;
 
 import handler.ResourceHandler;
 import interceptor.AuthorInterceptor;
@@ -19,9 +17,11 @@ import com.jfinal.plugin.activerecord.ActiveRecordPlugin;
 import com.jfinal.plugin.activerecord.Model;
 import com.jfinal.plugin.druid.DruidPlugin;
 import com.jfinal.template.Engine;
+import common.model._MappingKit;
 
 import controller.AdminController;
 import controller.HelloController;
+import domain.User;
 
 // import domain.User;
 
@@ -41,8 +41,10 @@ public class DemoConfig extends JFinalConfig
     public void configConstant(Constants me)
     {
         // me.setDevMode(true);
-        PropKit.use("a_little_config.txt");
-        me.setDevMode(PropKit.getBoolean("devMode"));//
+        PropKit.use("mydatabase.txt");
+        Boolean devMode = PropKit.getBoolean("devMode", false);
+        System.out.println("DemoConfig.configConstant()==devMode=" + devMode);
+        me.setDevMode(devMode);//
     }
     
     public void configRoute(Routes me)
@@ -60,7 +62,6 @@ public class DemoConfig extends JFinalConfig
     {
         // me.addSharedFunction("");
         // me.addSharedFunction("");
-        // me.addSharedFunction("");
     }
     
     /**
@@ -69,12 +70,19 @@ public class DemoConfig extends JFinalConfig
     public void configPlugin(Plugins me)
     {
         loadPropertyFile("mydatabase.txt");
-        DruidPlugin dp = new DruidPlugin(getProperty("url"), getProperty("username"), getProperty("password"));
+        String jdbcUrl = getProperty("jdbcUrl").trim();
+        String username = getProperty("username").trim();
+        String password = getProperty("password").trim();
+        System.out.println("jdbcUrl=" + jdbcUrl);
+        System.out.println("username=" + username);
+        System.out.println("password=" + password);
+        DruidPlugin dp = new DruidPlugin(jdbcUrl, username, password);
         me.add(dp);
         ActiveRecordPlugin arp = new ActiveRecordPlugin(dp);
+        _MappingKit.mapping(arp);
         me.add(arp);
         // TODO 配置数据库表对应实例
-        arp.addMapping("user", (Class<? extends Model<?>>)User.class);
+        // arp.addMapping("user", User.class);
         
     }
     
@@ -85,7 +93,7 @@ public class DemoConfig extends JFinalConfig
      */
     public void configInterceptor(Interceptors me)
     {
-        me.add(new AuthorInterceptor());
+        // me.add(new AuthorInterceptor());
     }
     
     /**
@@ -94,6 +102,24 @@ public class DemoConfig extends JFinalConfig
      */
     public void configHandler(Handlers me)
     {
-        me.add(new ResourceHandler());
+        // me.add(new ResourceHandler());
     }
+    
+    @Override
+    public void afterJFinalStart()
+    {
+        System.out.println("===启动之后要处理的事情==");
+    }
+    
+    @Override
+    public void beforeJFinalStop()
+    {
+        System.out.println("=====关闭之前处理需要处理的事情=====");
+    }
+    
+    public static DruidPlugin createDruidPlugin()
+    {
+        return new DruidPlugin(PropKit.get("jdbcUrl"), PropKit.get("username"), PropKit.get("password").trim());
+    }
+    
 }

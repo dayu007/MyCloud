@@ -18,7 +18,7 @@ public class FrontRoutes extends Routes
     @Override
     public void config()
     {
-        setBaseViewPath("WEB-INF/view/front");
+//        setBaseViewPath("WEB-INF/view/front");
         add("/", IndexController.class);
         add("/blog", BlogController.class);
     }
