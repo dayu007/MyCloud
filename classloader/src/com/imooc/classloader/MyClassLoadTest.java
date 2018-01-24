@@ -8,7 +8,6 @@ public class MyClassLoadTest
 {
     public static void main(String[] args)
     {
-        System.out.println("MyClassLoadTest.main()");
         new Thread(new MsgHandler()).start();
     }
 }

@@ -37,7 +37,7 @@ public class MyClassLoader extends ClassLoader
     {
         try
         {
-            name = name.replace(".", "//");
+            name = name.replace(".", "/");
             FileInputStream is = new FileInputStream(new File(classpath + name + ".class"));
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             int b = 0;
