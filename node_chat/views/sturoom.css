@@ -1,0 +1,57 @@
+* {margin: 0; padding: 0; font-family: ΢���ź�; }
+#content {
+	min-height: 100%;
+	height: 100%;
+	z-index: 0;
+}
+
+.uname {
+	font-weight: bold;
+}
+
+.content {
+	width: 100%;
+	height: 100%;
+	background-color: #f6f6f6;
+}
+
+.chatArea {
+	width: 100%;
+	height: 90%;
+	background-color: #f6f6f6;
+}
+
+.txtArea {
+	width: 100%;
+	height: 90%;
+	overflow-y: auto;
+	background-color: #f6f6f6;
+}
+
+.sendArea {
+	width: 100%;
+	height: 10%;
+	bottom: 0px;
+/* 	position: absolute; */
+}
+
+.msg {
+	width: 100%;
+	height: 1.5em;
+	font-size: 1.5em;
+}
+
+#send {
+	width: 100%;
+	height: 100%;
+}
+
+.name_msg {
+	background-color: #dedfe0;
+}
+
+.data_msg {
+	background-color: #f8f8f8;
+	margin-left: 10%;
+	width: auto;
+}

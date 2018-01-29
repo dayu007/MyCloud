@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <link rel="stylesheet" href="http://res.wx.qq.com/open/libs/weui/0.4.0/weui.min.css">
+    <!--<link rel="stylesheet" type="text/css" href="sturoom.css">-->
+    <title>{{roomID}}</title>
+
+    <style>
+        /*#msglog, #messageInput {*/
+        /*border: 1px solid #ccc;*/
+        /*width: 500px;*/
+        /*height: 350px;*/
+        /*overflow-y: auto;*/
+        /*font-size: 14px;*/
+        /*}*/
+
+        /*#messageInput {*/
+        /*height: 80px;*/
+        /*}*/
+
+        * {
+            font-family: "微软雅黑";
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #content {
+            min-height: 100%;
+            position: absolute;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #f6f6f6;
+        }
+
+        .chatArea {
+            width: 100%;
+            height: 100%;
+            background-color: #f6f6f6;
+        }
+
+        .txtArea {
+            width: 100%;
+            height: 90%;
+            overflow-y: auto;
+            background-color: #f6f6f6;
+            position: absolute;
+        }
+
+        .sendArea {
+            width: 100%;
+            height: 10%;
+            position: absolute;
+            bottom: 0px;
+        }
+
+        #sendMessage {
+            width: 100%;
+            height: 100%;
+        }
+
+        .username-msg {
+            font-weight: bolder;
+        }
+
+        .data_msg {
+            margin-left: 5%;
+            background-color: #e0e3e6;
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .msg {
+            width: 100%;
+            height: 2em;
+            font-size: 2em;
+        }
+
+        .sysMsg {
+            color: #c1bfbf;
+            padding-right: 5px;
+            padding-left: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<!--房间: {{roomID}} <br/>-->
+<!--<button id="joinOrLeave">退出房间</button>-->
+<div class="content" id="content">
+    <div class="chatArea well">
+        <div class="txtArea" id="txtarea"></div>
+        <div class="sendArea">
+            <table style="width: 100%">
+                <tr>
+                    <td width="80%">
+                        <input id="messageInput" class="msg" type="text" placeholder="发送内容..." maxlength="200"/></td>
+                    <td width="20%" style="text-align: center;">
+                        <button id="sendMessage" class="weui_btn weui_btn_primary send">发送</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/jquery.js"></script>
+<script>
+    $(function () {
+        // ----------设置昵称-------------
+        var userName = '';
+        var userId, isfrom;
+        //isfrom a :android/i:ios/wc:微信/w:网页
+
+        //处理url参数
+        function GetUrlPara() {
+            var url = document.location.toString();
+            var arrUrl = url.split("/");
+            var roomId = arrUrl[arrUrl.length - 1];
+            var userInfoArrs = arrUrl[arrUrl.length - 2];
+            var userInfos = userInfoArrs.split("&");
+            userId = userInfos[0];
+            userName = userInfos[1];
+            isfrom = userInfos[2];
+            userName = decodeURI(userName)
+
+            console.log('url=' + url)
+            console.log(arrUrl)
+            console.log(roomId + '' + userInfoArrs)
+            console.log('学生：' + userName + '，id=' + userId + '  进入房间：' + roomId)
+        }
+
+        // ---------创建连接-----------
+        var socket = io();
+
+        GetUrlPara()
+
+        // 加入房间
+        socket.on('connect', function () {
+            var data = {
+                userName: userName,
+                userId: userId,
+                isfrom: isfrom
+            }
+            socket.emit('join', data);
+        });
+
+        // 监听消息
+        socket.on('msg', function (user, msg) {
+            var message = '' +
+                    '<div class="message">' +
+                    ' <div> <span class="username-msg">' + user.name + getdata()+' </span></div>' +
+                    '  <span class="data_msg">' + msg + '</span>' +
+                    '</div>';
+            $('#txtarea').append(message);
+            // 滚动条保持最下方
+            $('#txtarea').scrollTop($('#txtarea')[0].scrollHeight);
+        });
+
+        // 禁言中
+        socket.on('shutup', function (msg) {
+            $('#messageInput').attr('disabled', 'disabled')
+            $('#messageInput').attr('placeholder', '禁言中')
+        });
+
+        // 解除禁言
+        socket.on('talk', function (msg) {
+            $('#messageInput').removeAttr('disabled')
+            $('#messageInput').attr('placeholder', '请输入聊天内容。。。')
+        });
+
+        // 监听系统消息
+        socket.on('sys', function (sysMsg, users) {
+            var message = '<div class="sysMsg">' + sysMsg + '</div>';
+            $('#txtarea').append(message);
+//            $('#count').text(users.length);
+        });
+
+        // 发送消息
+        $('#messageInput').keydown(function (e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                var msg = $(this).val();
+                if (msg.trim() == '') {
+                    return false
+                }
+                $(this).val('');
+                socket.send(msg);
+            }
+        });
+
+        $('#sendMessage').click(function () {
+            var msg = $('#messageInput').val();
+            if (msg.trim() == '') {
+                return false
+            }
+            $('#messageInput').val('');
+            socket.send(msg);
+        })
+
+        // 退出房间
+        $('#joinOrLeave').click(function () {
+            if ($(this).text() === '退出房间') {
+                $(this).text('进入房间');
+                socket.emit('leave');
+                var msg = '你已经退出了房间,重新发言请点击"进入房间"';
+                $('#txtarea').append('<div class="sysMsg">' + msg + '</div>');
+            } else {
+                $(this).text('退出房间');
+                socket.emit('join', userName);
+            }
+        });
+    });
+
+
+    function getdata(){
+        var date=new Date();
+        var year=date.getFullYear(); //获取当前年份
+        var mon=date.getMonth()+1; //获取当前月份
+        var da=date.getDate(); //获取当前日
+        var day=date.getDay(); //获取当前星期几
+        var h=date.getHours(); //获取小时
+        var m=date.getMinutes()<10?'0'+date.getMinutes():date.getMinutes(); //获取分钟
+        var s=date.getSeconds()<10?'0'+date.getSeconds():date.getSeconds(); //获取秒
+
+        return '<span class="sysMsg"> '+mon+'-'+da+' '+h+':'+m+':'+s+'</span>';
+    }
+
+</script>
+</body>
+</html>
