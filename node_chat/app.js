@@ -18,7 +18,7 @@ var istalk = {}
 
 socketIO.on('connection', function (socket) {
     // 获取请求建立socket连接的url
-    // 如: http://localhost:3000/room/room_1, roomID为room_1
+    // 如: http://localhost:xxxx/room/room_1, roomID为room_1
     var url = socket.request.headers.referer;
     var splited = url.split('/');
     var roomID = splited[splited.length - 1];   // 获取房间ID
@@ -46,12 +46,13 @@ socketIO.on('connection', function (socket) {
         }
 
         roomInfo[roomID].push(user);
-        // 加入房间
+        // 加入聊天室
         socket.join(roomID);
-        // 通知房间内人员
-        socketIO.to(roomID).emit('sys', user.name + ' 进入聊天室', roomInfo[roomID]);
+        // 通知聊天室内人员
+        //socketIO.to(roomID).emit('sys', user.name + ' 进入聊天室', roomInfo[roomID]);
+        socketIO.to(roomID).emit('sys', '', roomInfo[roomID]);
 
-        //如果该房间禁言，则发送状态
+        //如果该聊天室禁言，则发送状态
         if(istalk[roomID]){
             socketIO.to(roomID).emit('shutup', '');
         }
@@ -64,20 +65,21 @@ socketIO.on('connection', function (socket) {
     });
 
     socket.on('disconnect', function () {
-        // 从房间名单中移除
+        // 从聊天室名单中移除
         var index = roomInfo[roomID].indexOf(user);
         if (index !== -1) {
             roomInfo[roomID].splice(index, 1);
         }
 
-        socket.leave(roomID);    // 退出房间
-        socketIO.to(roomID).emit('sys', user.name + '退出了房间', roomInfo[roomID]);
+        socket.leave(roomID);    // 退出聊天室
+        socketIO.to(roomID).emit('sys', '', roomInfo[roomID]);
+        //socketIO.to(roomID).emit('sys', user.name + ' 退出了聊天室', roomInfo[roomID]);
         //console.log(user.name + '退出了' + roomID);
     });
 
-    // 接收用户消息,发送相应的房间
+    // 接收用户消息,发送相应的聊天室
     socket.on('message', function (msg) {
-        // 验证如果用户不在房间内则不给发送
+        // 验证如果用户不在聊天室内则不给发送
         if (roomInfo[roomID].indexOf(user) === -1) {
             return false;
         }
@@ -118,7 +120,7 @@ socketIO.on('connection', function (socket) {
 });
 
 // room page
-router.get('/room/student/:param/:roomID', function (req, res) {
+router.get('/room/student/:userId/:userName/:isfrom/:roomID', function (req, res) {
     var roomID = req.params.roomID;
 
     // 渲染页面数据(见views/room.hbs)
@@ -127,12 +129,13 @@ router.get('/room/student/:param/:roomID', function (req, res) {
         users: roomInfo[roomID]
     });
 });
+
 // room page
 router.get('/room/teacher/:param/:roomID', function (req, res) {
     var roomID = req.params.roomID;
 
     // 渲染页面数据(见views/room.hbs)
-    res.render('teacher2', {
+    res.render('teacher', {
         roomID: roomID,
         users: roomInfo[roomID]
     });
@@ -140,6 +143,6 @@ router.get('/room/teacher/:param/:roomID', function (req, res) {
 
 app.use('/', router);
 
-server.listen(3000, function () {
-    console.log('server listening on port 3000');
+server.listen(3303, function () {
+    console.log('server listening on port');
 });

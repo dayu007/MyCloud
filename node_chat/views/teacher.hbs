@@ -3,62 +3,155 @@
 <head lang="utf-8">
     <meta charset="UTF-8">
     <title>teacher_{{roomID}}</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <link rel="stylesheet" href="http://res.wx.qq.com/open/libs/weui/0.4.0/weui.min.css">
     <style>
-        #msglog, #messageInput {
-            border: 1px solid #ccc;
-            width: 500px;
-            height: 350px;
+        * {
+            font-family: "微软雅黑";
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        #content { /* this is the div you want to fill the window */
+            min-height: 100%;
+        }
+
+        * html #content {
+            height: 100%
+        }
+
+        .content {
+            width: 100%;
+            height: 100%;
+            margin: auto;
+        }
+
+        .chatTitle {
+            width: 100%;
+            height: 5%;
+            text-align: center;
+            background-color: #b1a8a8;
+        }
+
+        .chatTitle .title {
+            font-size: 1.5em;
+        }
+
+        .chatArea {
+            width: 100%;
+            height: 95%;
+        }
+
+        .userListOnline {
+            width: 25%;
+            height: 95%;
+            float: left;
             overflow-y: auto;
-            font-size: 14px;
+            background-color: #ccccd2;
         }
 
-        #messageInput {
-            height: 80px;
+        .txtArea {
+            width: 75%;
+            height: 95%;
+            float: left;
+            background-color: #f8f8f8;
         }
 
-        .message {
-            line-height: 22px;
+        .msgArea {
+            width: 100%;
+            height: 90%;
+            overflow-y: auto;
+            border-bottom: 1px solid #9d9898;
         }
 
-        .message .user {
-            padding-right: 5px;
-            padding-left: 5px;
-            color: brown;
+        .sendArea {
+            width: 100%;
+            height: 5%;
+        }
+
+        .input_msg {
+            width: 100%;
+            height: 2em;
+            font-size: 1.5em;
+        }
+
+        .name_msg {
+            font-weight: bolder;
+        }
+
+        .uname {
+            line-height: 25px;
+        }
+
+        .data_msg {
+            margin-left: 5%;
+            background-color: #e0e3e6;
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        ul {
+            margin-left: 20%;
+        }
+
+        ul li {
+            list-style-type: none;
         }
 
         .sysMsg {
             color: #c1bfbf;
             padding-right: 5px;
             padding-left: 5px;
-            font-size: 12px;
+            font-size: 14px;
         }
 
-        #users {
-            width: 490px;
-            padding: 0 5px 5px;
+        #talkOrShutup {
+            width: 80px;
+            height: 100%;
         }
-        body{
-            background-color: paleturquoise;
+
+        .handup_image {
+            margin-left: 5px;
+        }
+
+        .connecting_image {
+            margin-left: 5px;
         }
     </style>
 </head>
 <body>
-昵称: <span id="userName"></span> <br/>
-房间: {{roomID}} <br/>
-当前在线人数: <span id="count">{{users.length}}</span> <br/>
-在线学生列表:
-<div id="users">
-    {{users}}
-</div>
+<div class="content" id="content">
+    <div class="chatTitle" id="chattitle">
+        <!--<button id="joinOrLeave">退出聊天室</button>-->
+        <button id="talkOrShutup" class="weui_btn weui_btn_mini weui_btn_warn">禁 言</button>
+    </div>
+    <div class="chatArea well">
+        <div class="userListOnline">
+            当前在线人数: <span id="count">{{users.length}}</span> <br/>
+            <div id="userListOnline"></div>
+        </div>
 
-<div id="msglog">
-
+        <div class="txtArea" id="txtArea">
+            <div class="msgArea" id="msgArea"></div>
+            <div class="sendArea">
+                <table style="width: 100%">
+                    <tr>
+                        <td width="90%">
+                            <textarea id="messageInput" wrap="soft" class="input_msg" type="text" placeholder="发送内容。。。       Enter 键发送消息"></textarea>
+                        </td>
+                        <td style="text-align: center;">
+                            <button id="sendMessage" class="weui_btn weui_btn_mini weui_btn_primary send" id="send">发送
+                            </button>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div style="clear: both;"></div>
+    </div>
 </div>
-<input name="message" id="messageInput" placeholder="请输入聊天内容。。。"></input>
-<br/>
-按Enter键发送
-<button id="joinOrLeave">退出房间</button>
-<button id="talkOrShutup">禁言</button>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/jquery.js"></script>
@@ -67,7 +160,8 @@
         // ----------设置昵称-------------
         var userName = '';
         var userId = '';
-
+        var isfrom = '';
+        var userOnline = {}
 
         //处理url参数
         function GetUrlPara() {
@@ -78,12 +172,17 @@
             var userInfos = userInfoArrs.split("&");
             userId = userInfos[0];
             userName = userInfos[1];
+            isfrom = userInfos[2];
             userName = decodeURI(userName)
+
+            if (isfrom == undefined) {
+                isfrom = 'w'
+            }
 
             console.log('url=' + url)
             console.log(arrUrl)
             console.log(roomId + '' + userInfoArrs)
-            console.log('老师：' + userName + '，id=' + userId + '  进入房间：' + roomId)
+            console.log('老师：' + userName + '，id=' + userId + '  进入聊天室：' + roomId)
         }
 
         // ---------创建连接-----------
@@ -92,52 +191,117 @@
 
         GetUrlPara();
 
-        // 加入房间
+        // 加入聊天室
         socket.on('connect', function () {
             console.log('connection 中的username=' + userName)
-            socket.emit('join', userName);
+            var data = {
+                userName: userName,
+                userId: userId,
+                isfrom: isfrom
+            }
+            socket.emit('join', data);
         });
 
 
         // 监听消息
-        socket.on('msg', function (userName, msg) {
-            var message = '' +
-                    '<div class="message">' +
-                    '  <span class="user">' + userName + ': </span>' +
-                    '  <span class="msg">' + msg + '</span>' +
-                    '</div>';
-            $('#msglog').append(message);
+        socket.on('msg', function (user, msg) {
+
+            var element = '<div class="message">' +
+                    '     <div class="name_msg">' +
+                    '		<span class="">' + user.name + getdate() + '	</div>' +
+                    '   <div class="data_msg">' + msg +
+                    '	</div>' + '</div>';
+            $('#msgArea').append(element);
             // 滚动条保持最下方
-            $('#msglog').scrollTop($('#msglog')[0].scrollHeight);
+            $('#msgArea').scrollTop($('#msgArea')[0].scrollHeight);
         });
 
         // 监听系统消息
         socket.on('sys', function (sysMsg, users) {
+            if(sysMsg!=''){
             var message = '<div class="sysMsg">' + sysMsg + '</div>';
-            $('#msglog').append(message);
+            $('#msgArea').append(message);
+            }
             $('#count').text(users.length);
 
-//        $('#users').text(users);
-            var html = '<ul>'
-            users.forEach(function (value, index, array) {
-                array[index] == value;    //结果为true
-                html += '<li>' + value + '</li>'
+
+            //初始化数据
+            userOnline['weixin'] = []
+            userOnline['pad'] = []
+            userOnline['others'] = []
+
+            var userListHtml = '<div><ul>';
+            userListHtml += '<li class="user_li">' + '<img alt="NoImg" src="/image/tea_icon.png" width="25px" height="25px">' + ' <span class="uname" > ' + userName + '</span></li>'
+
+            users.forEach(function (user, index, array) {
+                if (user.userId != userId) {
+                    var imagePage = '';
+                    if (user.isfrom == 'wc') {//微信
+                        userOnline['weixin'].push(user)
+                    } else if (user.isfrom == 'p') {//pad
+                        userOnline['pad'].push(user)
+                    } else {
+                        userOnline['others'].push(user)
+                    }
+                }
             });
-            html += '</ul>'
-            $('#users').html(html);
+
+            //举手标志，功能暂时未用
+//            var handup= '<img alt="NoImg" src="/image/hand.png" width="25px" height="25px" class="handup_image">'
+
+            userOnline['pad'].forEach(function (user, index, array) {
+                var imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
+//                var connecting = '<img alt="NoImg" src="/image/microphone.png" width="25px" height="25px" class="connecting_image" onclick="connect_me(' + user.userId + ')">'
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
+            })
+
+            userOnline['weixin'].forEach(function (user, index, array) {
+                var imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
+            })
+
+            userOnline['others'].forEach(function (user, index, array) {
+                userListHtml += '<li class="user_li">' + ' <span class="uname" style="margin-left: 28px;"> ' + user.name + '</span></li>'
+            })
+
+
+            /*   users.forEach(function (user, index, array) {
+                   if (user.userId != userId) {
+                       var imagePage = '';
+                       if (user.isfrom == 'a') {//Android
+   //                        imagePage = '<img alt="NoImg" src="/image/android.png" width="25px" height="25px">'
+                       } else if (user.isfrom == 'i') {//IOS
+   //                        imagePage = '<img alt="NoImg" src="/image/ios.png" width="25px" height="25px">'
+                       } else if (user.isfrom == 'wc') {//微信
+                           imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
+                       } else if (user.isfrom == 'w') {//网页
+   //                        imagePage = '<img alt="NoImg" src="/image/wy.png" width="25px" height="25px">'
+                       } else if (user.isfrom == 'p') {//pad
+                           imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
+                       }
+                       userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
+                   }
+               });*/
+            userListHtml += '<ul><div>'
+            $('#userListOnline').html(userListHtml);
         });
 
 
-        socket.on('talk',function (msg) {
+        //解除禁言事件
+        socket.on('talk', function (msg) {
+            $('#talkOrShutup').text('禁 言');
+            $('#talkOrShutup').attr('Class', 'weui_btn weui_btn_mini weui_btn_warn')
             $('#messageInput').removeAttr('disabled')
-            $('#messageInput').attr('placeholder','请输入聊天内容。。。')
+            $('#messageInput').attr('placeholder', '请输入聊天内容。。。      Enter 键发送消息')
         })
 
-        socket.on('shutup',function (msg) {
-            $('#messageInput').attr('disabled','disabled')
-            $('#messageInput').attr('placeholder','禁言中')
+        //禁言事件
+        socket.on('shutup', function (msg) {
+            $('#talkOrShutup').text('聊 天');
+            $('#talkOrShutup').attr('Class', 'weui_btn weui_btn_mini weui_btn_primary')
+            $('#messageInput').attr('disabled', 'disabled')
+            $('#messageInput').attr('placeholder', '禁言中')
         })
-
 
 
         // 发送消息
@@ -145,7 +309,7 @@
             if (e.which === 13) {
                 e.preventDefault();
                 var msg = $(this).val();
-                if(msg.trim()==''){
+                if (msg.trim() == '') {
                     return false
                 }
                 $(this).val('');
@@ -153,32 +317,57 @@
             }
         });
 
-        // 退出房间
+        $('#sendMessage').click(function () {
+            var msg = $('#messageInput').val();
+            if (msg.trim() == '') {
+                return false
+            }
+            $('#messageInput').val('');
+            socket.send(msg);
+        })
+
+        // 退出聊天室
         $('#joinOrLeave').click(function () {
-            if ($(this).text() === '退出房间') {
-                $(this).text('进入房间');
+            if ($(this).text() === '退出聊天室') {
+                $(this).text('进入聊天室');
                 socket.emit('leave');
-                var msg = '你已经退出了房间,重新发言请点击"进入房间"';
-                $('#msglog').append('<div class="sysMsg">' + msg + '</div>');
+                var msg = '你已经退出了聊天室,重新发言请点击"进入聊天室"';
+                $('#msgArea').append('<div class="sysMsg">' + msg + '</div>');
             } else {
-                $(this).text('退出房间');
+                $(this).text('退出聊天室');
                 socket.emit('join', userName);
             }
         });
 
-        // 退出房间
+        // 禁言
         $('#talkOrShutup').click(function () {
-            if ($(this).text() === '禁言') {
-                $(this).text('聊天');
+            if ($(this).text() === '禁 言') {
+                $(this).text('聊 天');
                 socket.emit('shutup', userName);
             } else {
-                $(this).text('禁言');
-                socket.emit('talk',userName);
+                $(this).text('禁 言');
+                socket.emit('talk', userName);
             }
         });
-
-
     });
+
+    function getdate() {
+        var date = new Date();
+        var year = date.getFullYear(); //获取当前年份
+        var mon = date.getMonth() + 1; //获取当前月份
+        var da = date.getDate(); //获取当前日
+        var day = date.getDay(); //获取当前星期几
+        var h = date.getHours(); //获取小时
+        var m = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes(); //获取分钟
+        var s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds(); //获取秒
+
+        return '<span class="sysMsg"> ' + mon + '-' + da + ' ' + h + ':' + m + ':' + s + '</span>';
+    }
+
+
+    function connect_me(userId) {
+        alert('userId=' + userId)
+    }
 </script>
 </body>
 </html>

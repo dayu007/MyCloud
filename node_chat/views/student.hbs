@@ -4,22 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <link rel="stylesheet" href="http://res.wx.qq.com/open/libs/weui/0.4.0/weui.min.css">
-    <!--<link rel="stylesheet" type="text/css" href="sturoom.css">-->
     <title>{{roomID}}</title>
 
     <style>
-        /*#msglog, #messageInput {*/
-        /*border: 1px solid #ccc;*/
-        /*width: 500px;*/
-        /*height: 350px;*/
-        /*overflow-y: auto;*/
-        /*font-size: 14px;*/
-        /*}*/
-
-        /*#messageInput {*/
-        /*height: 80px;*/
-        /*}*/
-
         * {
             font-family: "微软雅黑";
             margin: 0;
@@ -101,7 +88,7 @@
 </head>
 <body>
 <!--房间: {{roomID}} <br/>-->
-<!--<button id="joinOrLeave">退出房间</button>-->
+<!--<button id="joinOrLeave">退出聊天室</button>-->
 <div class="content" id="content">
     <div class="chatArea well">
         <div class="txtArea" id="txtarea"></div>
@@ -131,18 +118,21 @@
         function GetUrlPara() {
             var url = document.location.toString();
             var arrUrl = url.split("/");
+//            alert(arrUrl.length)
             var roomId = arrUrl[arrUrl.length - 1];
-            var userInfoArrs = arrUrl[arrUrl.length - 2];
-            var userInfos = userInfoArrs.split("&");
-            userId = userInfos[0];
-            userName = userInfos[1];
-            isfrom = userInfos[2];
+            isfrom = arrUrl[arrUrl.length - 2];
+            userName = arrUrl[arrUrl.length - 3];
+            userId = arrUrl[arrUrl.length - 4];
+//            var userInfoArrs = arrUrl[arrUrl.length - 2];
+//            var userInfos = userInfoArrs.split("&");
+//            userId = userInfos[0];
+//            userName = userInfos[1];
+//            isfrom = userInfos[2];
             userName = decodeURI(userName)
 
             console.log('url=' + url)
             console.log(arrUrl)
-            console.log(roomId + '' + userInfoArrs)
-            console.log('学生：' + userName + '，id=' + userId + '  进入房间：' + roomId)
+            console.log('学生：' + userName + '，id=' + userId + '  进入聊天室：' + roomId)
         }
 
         // ---------创建连接-----------
@@ -150,7 +140,7 @@
 
         GetUrlPara()
 
-        // 加入房间
+        // 加入聊天室
         socket.on('connect', function () {
             var data = {
                 userName: userName,
@@ -164,7 +154,7 @@
         socket.on('msg', function (user, msg) {
             var message = '' +
                     '<div class="message">' +
-                    ' <div> <span class="username-msg">' + user.name + getdata()+' </span></div>' +
+                    ' <div> <span class="username-msg">' + user.name + getdata() + ' </span></div>' +
                     '  <span class="data_msg">' + msg + '</span>' +
                     '</div>';
             $('#txtarea').append(message);
@@ -188,7 +178,6 @@
         socket.on('sys', function (sysMsg, users) {
             var message = '<div class="sysMsg">' + sysMsg + '</div>';
             $('#txtarea').append(message);
-//            $('#count').text(users.length);
         });
 
         // 发送消息
@@ -213,32 +202,32 @@
             socket.send(msg);
         })
 
-        // 退出房间
+        // 退出聊天室
         $('#joinOrLeave').click(function () {
-            if ($(this).text() === '退出房间') {
-                $(this).text('进入房间');
+            if ($(this).text() === '退出聊天室') {
+                $(this).text('进入聊天室');
                 socket.emit('leave');
-                var msg = '你已经退出了房间,重新发言请点击"进入房间"';
+                var msg = '你已经退出了聊天室,重新发言请点击"进入聊天室"';
                 $('#txtarea').append('<div class="sysMsg">' + msg + '</div>');
             } else {
-                $(this).text('退出房间');
+                $(this).text('退出聊天室');
                 socket.emit('join', userName);
             }
         });
     });
 
 
-    function getdata(){
-        var date=new Date();
-        var year=date.getFullYear(); //获取当前年份
-        var mon=date.getMonth()+1; //获取当前月份
-        var da=date.getDate(); //获取当前日
-        var day=date.getDay(); //获取当前星期几
-        var h=date.getHours(); //获取小时
-        var m=date.getMinutes()<10?'0'+date.getMinutes():date.getMinutes(); //获取分钟
-        var s=date.getSeconds()<10?'0'+date.getSeconds():date.getSeconds(); //获取秒
+    function getdata() {
+        var date = new Date();
+        var year = date.getFullYear(); //获取当前年份
+        var mon = date.getMonth() + 1; //获取当前月份
+        var da = date.getDate(); //获取当前日
+        var day = date.getDay(); //获取当前星期几
+        var h = date.getHours(); //获取小时
+        var m = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes(); //获取分钟
+        var s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds(); //获取秒
 
-        return '<span class="sysMsg"> '+mon+'-'+da+' '+h+':'+m+':'+s+'</span>';
+        return '<span class="sysMsg"> ' + mon + '-' + da + ' ' + h + ':' + m + ':' + s + '</span>';
     }
 
 </script>
