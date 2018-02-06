@@ -22,16 +22,17 @@ socketIO.on('connection', function (socket) {
     var url = socket.request.headers.referer;
     var splited = url.split('/');
     var roomID = splited[splited.length - 1];   // 获取房间ID
-    var user ;
+    var user;
 
-    function User(name,userId,isfrom){
-        this.name=name
-        this.userId=userId
-        this.isfrom=isfrom
+    function User(name, userId, isfrom, isconnected) {
+        this.name = name
+        this.userId = userId
+        this.isfrom = isfrom
+        this.isconnected = isconnected
     }
 
     socket.on('join', function (data) {
-        user=new User(data.userName,data.userId,data.isfrom)
+        user = new User(data.userName, data.userId, data.isfrom, 0)
 
         //改对象
         //user = data.userName;
@@ -53,7 +54,7 @@ socketIO.on('connection', function (socket) {
         socketIO.to(roomID).emit('sys', '', roomInfo[roomID]);
 
         //如果该聊天室禁言，则发送状态
-        if(istalk[roomID]){
+        if (istalk[roomID]) {
             socketIO.to(roomID).emit('shutup', '');
         }
 
@@ -87,7 +88,7 @@ socketIO.on('connection', function (socket) {
         // 判断当前房间是否禁言中
         if (istalk[roomID]) {
             // socketIO.to(roomID).emit('shutup', msg);
-        }else{
+        } else {
             socketIO.to(roomID).emit('msg', user, msg);
         }
 
@@ -99,7 +100,7 @@ socketIO.on('connection', function (socket) {
         if (roomInfo[roomID].indexOf(user) === -1) {
             return false;
         }
-        istalk[roomID]=true
+        istalk[roomID] = true
         socketIO.to(roomID).emit('shutup', msg);
         socketIO.to(roomID).emit('sys', user.name + ' 开启禁言', roomInfo[roomID]);
     });
@@ -110,16 +111,76 @@ socketIO.on('connection', function (socket) {
         if (roomInfo[roomID].indexOf(user) === -1) {
             return false;
         }
-        istalk[roomID]=false
+        istalk[roomID] = false
         //console.log('istalk[roomID]=talk=='+istalk[roomID])
         socketIO.to(roomID).emit('talk', msg);//解除禁言操作
         // 通知房间内人员
         socketIO.to(roomID).emit('sys', user.name + ' 解除禁言', roomInfo[roomID]);
     });
 
+    // 老师让学生发言
+    socket.on('connect_stu', function (data) {
+        // 验证如果用户不在房间内则不给发送
+        if (roomInfo[roomID].indexOf(user) === -1) {
+            return false;
+        }
+
+        console.log('让学生 ' + data.name + ' 发言')
+        socketIO.to(roomID).emit('connect_stu', data.userId);
+        // 通知房间内人员
+        socketIO.to(roomID).emit('sys', user.name + ' 让' + data.name + ' 发言', roomInfo[roomID]);
+    });
+
+    // 老师让学生关闭发言
+    socket.on('disconnect_stu', function (data) {
+        // 验证如果用户不在房间内则不给发送
+        if (roomInfo[roomID].indexOf(user) === -1) {
+            return false;
+        }
+
+        console.log('让学生' + data.name + ' 关闭发言')
+        socketIO.to(roomID).emit('disconnect_stu', data.userId);
+        // 通知房间内人员
+        socketIO.to(roomID).emit('sys', user.name + ' 让' + data.name + ' 断开发言', roomInfo[roomID]);
+    });
+
+    // 学生回应老师连接状态
+    socket.on('connectingU', function (data) {
+        // 验证如果用户不在房间内则不给发送
+        if (roomInfo[roomID].indexOf(user) === -1) {
+            return false;
+        }
+        console.log("user.userId=" + user.userId)
+        console.log("=" + user.name)
+        console.log("=" + user.isconnected)
+
+        user.isconnected = data.connect_status
+        console.log("user.userId=" + data.connect_status)
+
+        socketIO.to(roomID).emit('connectingU', data);
+        if (user.isconnected == 0) {
+            socketIO.to(roomID).emit('sys', data.name + ' 断开连接', roomInfo[roomID]);
+        } else if (user.isconnected == 1) {
+            socketIO.to(roomID).emit('sys', data.name + ' 正在连接', roomInfo[roomID]);
+        }
+    });
+
+    // 老师取消所有学生连接
+    socket.on('disconnect_all_student', function (userName) {
+        // 验证如果用户不在房间内则不给发送
+        if (roomInfo[roomID].indexOf(user) === -1) {
+            return false;
+        }
+
+        roomInfo[roomID].forEach(function (stu, index, array) {
+            stu.isconnected = 0
+        })
+        socketIO.to(roomID).emit('sys', userName + ' 断开所有学生连接', roomInfo[roomID]);
+    });
+
 });
 
-// room page
+// student page
 router.get('/room/student/:userId/:userName/:isfrom/:roomID', function (req, res) {
     var roomID = req.params.roomID;
 
@@ -130,7 +191,18 @@ router.get('/room/student/:userId/:userName/:isfrom/:roomID', function (req, res
     });
 });
 
-// room page
+// student wechat page
+router.get('/student/:userId/:userName/:isfrom/:roomID', function (req, res) {
+    var roomID = req.params.roomID;
+
+    // 渲染页面数据(见views/room.hbs)
+    res.render('stu_chatroom', {
+        roomID: roomID,
+        users: roomInfo[roomID]
+    });
+});
+
+// teacher page
 router.get('/room/teacher/:param/:roomID', function (req, res) {
     var roomID = req.params.roomID;
 
@@ -144,5 +216,5 @@ router.get('/room/teacher/:param/:roomID', function (req, res) {
 app.use('/', router);
 
 server.listen(3303, function () {
-    console.log('server listening on port');
+    console.log('server listening on port 3303');
 });

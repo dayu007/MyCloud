@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <link rel="stylesheet" href="http://res.wx.qq.com/open/libs/weui/0.4.0/weui.min.css">
     <title>{{roomID}}</title>
-
     <style>
         * {
             font-family: "微软雅黑";
@@ -43,7 +42,7 @@
 
         .txtArea {
             width: 100%;
-            height: 80%;
+            height: 90%;
             overflow-y: auto;
             background-color: #f6f6f6;
             position: absolute;
@@ -51,7 +50,7 @@
 
         .sendArea {
             width: 100%;
-            /*height: 10%;*/
+            height: 10%;
             position: absolute;
             bottom: 0px;
         }
@@ -107,13 +106,10 @@
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/jquery.js"></script>
-<script src="/js/common.js"></script>
 <script>
     $(function () {
-        // ----------设置昵称-------------
         var userName = '';
         var userId, isfrom;
-        //isfrom a :android/i:ios/wc:微信/w:网页
 
         //处理url参数
         function GetUrlPara() {
@@ -123,16 +119,7 @@
             isfrom = arrUrl[arrUrl.length - 2];
             userName = arrUrl[arrUrl.length - 3];
             userId = arrUrl[arrUrl.length - 4];
-//            var userInfoArrs = arrUrl[arrUrl.length - 2];
-//            var userInfos = userInfoArrs.split("&");
-//            userId = userInfos[0];
-//            userName = userInfos[1];
-//            isfrom = userInfos[2];
             userName = decodeURI(userName)
-
-            console.log('url=' + url)
-            console.log(arrUrl)
-            console.log('学生：' + userName + '，id=' + userId + '  进入聊天室：' + roomId)
         }
 
         // ---------创建连接-----------
@@ -179,37 +166,6 @@
             var message = '<div class="sysMsg">' + sysMsg + '</div>';
             $('#txtarea').append(message);
         });
-
-        // 老师让学生发言
-        socket.on('connect_stu', function (stu_id) {
-            //如果是被叫发言是本人只需要发送连接
-            if(userId==stu_id){
-                callAndroid(1,userId)
-                var jsonObj={
-                    userId:userId,
-                    name:userName,
-                    connect_status:1
-                }
-                socket.emit('connectingU',jsonObj)
-            }
-        });
-
-        // 老师让学生关闭发言
-        socket.on('disconnect_stu', function (stu_id) {
-            //如果是被叫发言是本人只需要发送连接
-            if(userId==stu_id){
-                callAndroid(0,userId)
-                var jsonObj={
-                    userId:userId,
-                    name:userName,
-                    connect_status:0
-                }
-                socket.emit('connectingU',jsonObj)
-            }
-        });
-
-
-
 
         // 发送消息
         $('#messageInput').keydown(function (e) {

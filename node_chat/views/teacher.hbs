@@ -83,6 +83,7 @@
 
         .uname {
             line-height: 25px;
+            vertical-align: middle;
         }
 
         .data_msg {
@@ -118,18 +119,28 @@
 
         .connecting_image {
             margin-left: 5px;
+            vertical-align: middle;
         }
+
+        .user_li img{
+            vertical-align: middle;
+        }
+
     </style>
 </head>
 <body>
 <div class="content" id="content">
-    <div class="chatTitle" id="chattitle">
-        <!--<button id="joinOrLeave">退出聊天室</button>-->
+    <div class="chatTitle button_sp_area" id="chattitle" align="center">
         <button id="talkOrShutup" class="weui_btn weui_btn_mini weui_btn_warn">禁 言</button>
+        <!--<button id="joinOrLeave">退出聊天室</button>-->
     </div>
     <div class="chatArea well">
         <div class="userListOnline">
-            当前在线人数: <span id="count">{{users.length}}</span> <br/>
+            当前在线人数: <span id="count">{{users.length}}</span>
+            <button id="close_all_connection" class="weui_btn weui_btn_mini weui_btn_warn" style="display: none;">
+                关闭所有连接
+            </button>
+            <br/>
             <div id="userListOnline"></div>
         </div>
 
@@ -139,7 +150,8 @@
                 <table style="width: 100%">
                     <tr>
                         <td width="90%">
-                            <textarea id="messageInput" wrap="soft" class="input_msg" type="text" placeholder="发送内容。。。       Enter 键发送消息"></textarea>
+                            <textarea id="messageInput" wrap="soft" class="input_msg" type="text"
+                                      placeholder="发送内容。。。       Enter 键发送消息"></textarea>
                         </td>
                         <td style="text-align: center;">
                             <button id="sendMessage" class="weui_btn weui_btn_mini weui_btn_primary send" id="send">发送
@@ -155,13 +167,19 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/jquery.js"></script>
+<script src="/js/common.js"></script>
 <script>
+
+    var socket;
     $(function () {
         // ----------设置昵称-------------
         var userName = '';
         var userId = '';
         var isfrom = '';
         var userOnline = {}
+
+        var count_connect=0;
+
 
         //处理url参数
         function GetUrlPara() {
@@ -186,7 +204,7 @@
         }
 
         // ---------创建连接-----------
-        var socket = io();
+        socket = io();
 
 
         GetUrlPara();
@@ -218,9 +236,9 @@
 
         // 监听系统消息
         socket.on('sys', function (sysMsg, users) {
-            if(sysMsg!=''){
-            var message = '<div class="sysMsg">' + sysMsg + '</div>';
-            $('#msgArea').append(message);
+            if (sysMsg != '') {
+                var message = '<div class="sysMsg">' + sysMsg + '</div>';
+                $('#msgArea').append(message);
             }
             $('#count').text(users.length);
 
@@ -233,6 +251,9 @@
             var userListHtml = '<div><ul>';
             userListHtml += '<li class="user_li">' + '<img alt="NoImg" src="/image/tea_icon.png" width="25px" height="25px">' + ' <span class="uname" > ' + userName + '</span></li>'
 
+            //学生连麦标志
+            var connect_flag = false;
+
             users.forEach(function (user, index, array) {
                 if (user.userId != userId) {
                     var imagePage = '';
@@ -243,21 +264,36 @@
                     } else {
                         userOnline['others'].push(user)
                     }
+
+                    if (user.isconnected == 1) {
+                        connect_flag = true
+                    }
                 }
             });
+
+            if (connect_flag) {
+                $("#close_all_connection").show();
+            } else {
+                $("#close_all_connection").hide();
+            }
 
             //举手标志，功能暂时未用
 //            var handup= '<img alt="NoImg" src="/image/hand.png" width="25px" height="25px" class="handup_image">'
 
             userOnline['pad'].forEach(function (user, index, array) {
+                if (user.isconnected == 0) {
+                    var connecting = "<img alt=\"NoImg\" src=\"/image/tel.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"connect_me('" + user.userId + "','" + user.name + "')\">"
+                } else if (user.isconnected == 1) {
+                    var connecting = "<img alt=\"NoImg\" src=\"/image/teloff.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"disconnect_me('" + user.userId + "','" + user.name + "')\">"
+                }
                 var imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
-//                var connecting = '<img alt="NoImg" src="/image/microphone.png" width="25px" height="25px" class="connecting_image" onclick="connect_me(' + user.userId + ')">'
-                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name  +  '</span> &nbsp;&nbsp;'+connecting +'</li>'
             })
 
             userOnline['weixin'].forEach(function (user, index, array) {
                 var imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
-                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
+                var connecting = '<img alt="NoImg" src="/image/tel.png" width="25px" height="25px" class="connecting_image" onclick="connect_me(user.userId,user.name)">'
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name +  '</span>'+' &nbsp;&nbsp;' + connecting +'</li>'
             })
 
             userOnline['others'].forEach(function (user, index, array) {
@@ -349,7 +385,48 @@
                 socket.emit('talk', userName);
             }
         });
-    });
+
+        // 学生回应老师连接状态，0是断开，1是连接
+        socket.on('connectingU', function (data) {
+            if (data.connect_status == 0) {
+                count_connect--
+                if(count_connect==0){
+                    disconnect_all()
+                }
+                console.log('收到学生的回应' + ' 断开连接。。。')
+            } else if (data.connect_status == 1) {
+                count_connect++
+
+                connect(data.userId)
+                console.log('收到学生的回应' + ' 正在连接。。。')
+            }
+        });
+
+        // 教师主动断开所有连接，连接数清零
+        $("#close_all_connection").click(function () {
+            socket.emit('disconnect_all_student',userName)
+            disconnect_all()
+        });
+    })
+
+    function connect_me(userId, name) {
+        console.log('要求发言的学生姓名：' + name + ';id:' + userId)
+        var stu = {
+            userId: userId,
+            name: name
+        }
+        socket.emit('connect_stu', stu)
+    }
+
+    function disconnect_me(userId, name) {
+        console.log('要求发言的学生姓名：' + name + ';id:' + userId)
+        var stu = {
+            userId: userId,
+            name: name
+        }
+        socket.emit('disconnect_stu', stu)
+    }
+
 
     function getdate() {
         var date = new Date();
@@ -365,9 +442,6 @@
     }
 
 
-    function connect_me(userId) {
-        alert('userId=' + userId)
-    }
 </script>
 </body>
 </html>
