@@ -1,0 +1,23 @@
+<!--pages/live/live.wxml-->
+<view>
+  <text>pages/live/live.wxml</text>
+  <view>
+    我的学号是 {{user.userId}}
+  </view>
+  <view>
+    mignzi {{userName}}
+  </view>
+  <view>
+    {{user.userName}}
+  </view>
+  <view bindtap='backto'>
+    <button>返回</button>
+  </view>
+
+  <!-- sample.wxml -->
+  <view class="btn-area">
+    <navigator url="/pages/index/index?title=navigate" hover-class="navigator-hover">跳转到新页面</navigator>
+    <navigator url="../../redirect/redirect/redirect?title=redirect" open-type="redirect" hover-class="other-navigator-hover">在当前页打开</navigator>
+    <navigator url="/pages/index/index" open-type="switchTab" hover-class="other-navigator-hover">切换 Tab</navigator>
+  </view>
+</view>

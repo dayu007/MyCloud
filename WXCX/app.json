@@ -1,0 +1,12 @@
+{
+  "pages":[
+    "pages/index/index",
+    "pages/live/live",
+    "pages/logs/logs"
+  ],
+  "window":{
+    "navigationBarBackgroundColor": "#eaeaea",
+    "navigationBarTitleText": "直播房间",
+    "navigationBarTextStyle": "black"
+  }
+}
