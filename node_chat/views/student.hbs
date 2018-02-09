@@ -95,9 +95,12 @@
         <div class="sendArea">
             <table style="width: 100%">
                 <tr>
-                    <td width="80%">
+                    <td width="70%" id="chat_input">
                         <input id="messageInput" class="msg" type="text" placeholder="发送内容..." maxlength="200"/></td>
-                    <td width="20%" style="text-align: center;">
+                    <td width="15%" style="text-align: center;" id="hand_operation">
+                        <button id="ishandup" onclick="ishandup(1)" class="weui_btn weui_btn_primary send">举手</button>
+                    </td>
+                    <td width="15%" style="text-align: center;" id="send_button">
                         <button id="sendMessage" class="weui_btn weui_btn_primary send">发送</button>
                     </td>
                 </tr>
@@ -109,10 +112,12 @@
 <script src="/js/jquery.js"></script>
 <script src="/js/common.js"></script>
 <script>
+
+    var socket;
+    var userName = '';
+    var userId, isfrom;
     $(function () {
         // ----------设置昵称-------------
-        var userName = '';
-        var userId, isfrom;
         //isfrom a :android/i:ios/wc:微信/w:网页
 
         //处理url参数
@@ -123,11 +128,6 @@
             isfrom = arrUrl[arrUrl.length - 2];
             userName = arrUrl[arrUrl.length - 3];
             userId = arrUrl[arrUrl.length - 4];
-//            var userInfoArrs = arrUrl[arrUrl.length - 2];
-//            var userInfos = userInfoArrs.split("&");
-//            userId = userInfos[0];
-//            userName = userInfos[1];
-//            isfrom = userInfos[2];
             userName = decodeURI(userName)
 
             console.log('url=' + url)
@@ -136,9 +136,16 @@
         }
 
         // ---------创建连接-----------
-        var socket = io();
+        socket = io();
 
         GetUrlPara()
+
+        //默认元素具有举手功能，暂停只有pad端登录才有
+        if (isfrom != 'p') {
+            $("#hand_operation").remove()
+            $("#chat_input").width('80%')
+            $('#send_button').width('20%')
+        }
 
         // 加入聊天室
         socket.on('connect', function () {
@@ -176,39 +183,64 @@
 
         // 监听系统消息
         socket.on('sys', function (sysMsg, users) {
-            var message = '<div class="sysMsg">' + sysMsg + '</div>';
-            $('#txtarea').append(message);
+            //消息不为空的时间显示到聊天页面
+            if (sysMsg != '' || sysMsg.length != 0) {
+                var message = '<div class="sysMsg">' + sysMsg + '</div>';
+                $('#txtarea').append(message);
+            }
         });
 
         // 老师让学生发言
         socket.on('connect_stu', function (stu_id) {
             //如果是被叫发言是本人只需要发送连接
-            if(userId==stu_id){
-                callAndroid(1,userId)
-                var jsonObj={
-                    userId:userId,
-                    name:userName,
-                    connect_status:1
+            if (userId == stu_id) {
+                callAndroid(1, userId)
+                var jsonObj = {
+                    userId: userId,
+                    name: userName,
+                    connect_status: 1
                 }
-                socket.emit('connectingU',jsonObj)
+                socket.emit('connectingU', jsonObj)
             }
         });
 
         // 老师让学生关闭发言
         socket.on('disconnect_stu', function (stu_id) {
-            //如果是被叫发言是本人只需要发送连接
-            if(userId==stu_id){
-                callAndroid(0,userId)
-                var jsonObj={
-                    userId:userId,
-                    name:userName,
-                    connect_status:0
+            if (stu_id == -1) {
+                callAndroid(0, userId)
+            } else {
+                //如果是被叫发言是本人只需要发送连接
+                if (userId == stu_id) {
+                    callAndroid(0, userId)
+                    var jsonObj = {
+                        userId: userId,
+                        name: userName,
+                        connect_status: 0
+                    }
+                    socket.emit('connectingU', jsonObj)
                 }
-                socket.emit('connectingU',jsonObj)
             }
         });
 
-
+        // 老师反馈给学生是否收到举手或取消举手事件
+        socket.on('handup_back', function (data) {
+            if (userId == data.userId) {
+                if (data.ishandup == 1) {
+                    $('#ishandup').text('放手');
+                    $('#ishandup').attr("class", "weui_btn weui_btn_warn send")
+                } else if (data.ishandup == 0) {
+                    $('#ishandup').text('举手');
+                    $('#ishandup').attr("class", "weui_btn weui_btn_primary send")
+                }
+            }
+        });
+        // 老师取消所有学生举手事件
+        socket.on('put_down_all_hand', function (data) {
+            if (isfrom == 'p') {
+                $('#ishandup').text('举手');
+                $('#ishandup').attr("class", "weui_btn weui_btn_primary send")
+            }
+        });
 
 
         // 发送消息
@@ -247,6 +279,13 @@
         });
     });
 
+    $("#ishandup").click(function () {
+        if ($(this).text() === '举手') {
+            ishandup(1)
+        } else {
+            ishandup(0)
+        }
+    })
 
     function getdata() {
         var date = new Date();
@@ -259,6 +298,19 @@
         var s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds(); //获取秒
 
         return '<span class="sysMsg"> ' + mon + '-' + da + ' ' + h + ':' + m + ':' + s + '</span>';
+    }
+
+    /**
+     * 根据参数判断学生是否举手并发送事件
+     * param: 1代表举手，0代表放手
+     */
+    function ishandup(param) {
+        var jsonObj = {
+            userId: userId,
+            name: userName,
+            ishandup: param
+        }
+        socket.emit("ishandup", jsonObj)
     }
 
 </script>

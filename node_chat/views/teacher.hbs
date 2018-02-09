@@ -114,7 +114,7 @@
         }
 
         .handup_image {
-            margin-left: 5px;
+            margin-left: 10px;
         }
 
         .connecting_image {
@@ -122,8 +122,11 @@
             vertical-align: middle;
         }
 
-        .user_li img{
+        .user_li img {
             vertical-align: middle;
+        }
+        .weui_btn+.weui_btn{
+            margin-top: 0;
         }
 
     </style>
@@ -132,15 +135,22 @@
 <div class="content" id="content">
     <div class="chatTitle button_sp_area" id="chattitle" align="center">
         <button id="talkOrShutup" class="weui_btn weui_btn_mini weui_btn_warn">禁 言</button>
+        <button id="talkOrShutup" class="weui_btn weui_btn_mini weui_btn_warn">禁止举手</button>
+        <div id="tips"></div>
         <!--<button id="joinOrLeave">退出聊天室</button>-->
     </div>
     <div class="chatArea well">
         <div class="userListOnline">
-            当前在线人数: <span id="count">{{users.length}}</span>
-            <button id="close_all_connection" class="weui_btn weui_btn_mini weui_btn_warn" style="display: none;">
-                关闭所有连接
-            </button>
-            <br/>
+            <div id="user_operation">
+                当前在线人数: <span id="count">{{users.length}}</span>
+                <button id="put_down_all_hand" class="weui_btn weui_btn_mini weui_btn_warn" style="display: none;">
+                    取消举手
+                </button>
+                <button id="close_all_connection" class="weui_btn weui_btn_mini weui_btn_warn" style="display: none;">
+                    关闭所有连麦
+                </button>
+            </div>
+            <!--<br/>-->
             <div id="userListOnline"></div>
         </div>
 
@@ -171,14 +181,12 @@
 <script>
 
     var socket;
+    var userName = '';  //教师姓名
+    var count_connect = 0;//学生连麦数量
+    var userId = '';
+    var isfrom = '';
+    var userOnline = {}
     $(function () {
-        // ----------设置昵称-------------
-        var userName = '';
-        var userId = '';
-        var isfrom = '';
-        var userOnline = {}
-
-        var count_connect=0;
 
 
         //处理url参数
@@ -220,7 +228,6 @@
             socket.emit('join', data);
         });
 
-
         // 监听消息
         socket.on('msg', function (user, msg) {
 
@@ -236,90 +243,14 @@
 
         // 监听系统消息
         socket.on('sys', function (sysMsg, users) {
-            if (sysMsg != '') {
+            //消息不为空的时间显示到聊天页面
+            if (sysMsg != '' || sysMsg.length != 0) {
                 var message = '<div class="sysMsg">' + sysMsg + '</div>';
                 $('#msgArea').append(message);
             }
             $('#count').text(users.length);
 
-
-            //初始化数据
-            userOnline['weixin'] = []
-            userOnline['pad'] = []
-            userOnline['others'] = []
-
-            var userListHtml = '<div><ul>';
-            userListHtml += '<li class="user_li">' + '<img alt="NoImg" src="/image/tea_icon.png" width="25px" height="25px">' + ' <span class="uname" > ' + userName + '</span></li>'
-
-            //学生连麦标志
-            var connect_flag = false;
-
-            users.forEach(function (user, index, array) {
-                if (user.userId != userId) {
-                    var imagePage = '';
-                    if (user.isfrom == 'wc') {//微信
-                        userOnline['weixin'].push(user)
-                    } else if (user.isfrom == 'p') {//pad
-                        userOnline['pad'].push(user)
-                    } else {
-                        userOnline['others'].push(user)
-                    }
-
-                    if (user.isconnected == 1) {
-                        connect_flag = true
-                    }
-                }
-            });
-
-            if (connect_flag) {
-                $("#close_all_connection").show();
-            } else {
-                $("#close_all_connection").hide();
-            }
-
-            //举手标志，功能暂时未用
-//            var handup= '<img alt="NoImg" src="/image/hand.png" width="25px" height="25px" class="handup_image">'
-
-            userOnline['pad'].forEach(function (user, index, array) {
-                if (user.isconnected == 0) {
-                    var connecting = "<img alt=\"NoImg\" src=\"/image/tel.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"connect_me('" + user.userId + "','" + user.name + "')\">"
-                } else if (user.isconnected == 1) {
-                    var connecting = "<img alt=\"NoImg\" src=\"/image/teloff.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"disconnect_me('" + user.userId + "','" + user.name + "')\">"
-                }
-                var imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
-                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name  +  '</span> &nbsp;&nbsp;'+connecting +'</li>'
-            })
-
-            userOnline['weixin'].forEach(function (user, index, array) {
-                var imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
-                var connecting = '<img alt="NoImg" src="/image/tel.png" width="25px" height="25px" class="connecting_image" onclick="connect_me(user.userId,user.name)">'
-                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name +  '</span>'+' &nbsp;&nbsp;' + connecting +'</li>'
-            })
-
-            userOnline['others'].forEach(function (user, index, array) {
-                userListHtml += '<li class="user_li">' + ' <span class="uname" style="margin-left: 28px;"> ' + user.name + '</span></li>'
-            })
-
-
-            /*   users.forEach(function (user, index, array) {
-                   if (user.userId != userId) {
-                       var imagePage = '';
-                       if (user.isfrom == 'a') {//Android
-   //                        imagePage = '<img alt="NoImg" src="/image/android.png" width="25px" height="25px">'
-                       } else if (user.isfrom == 'i') {//IOS
-   //                        imagePage = '<img alt="NoImg" src="/image/ios.png" width="25px" height="25px">'
-                       } else if (user.isfrom == 'wc') {//微信
-                           imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
-                       } else if (user.isfrom == 'w') {//网页
-   //                        imagePage = '<img alt="NoImg" src="/image/wy.png" width="25px" height="25px">'
-                       } else if (user.isfrom == 'p') {//pad
-                           imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
-                       }
-                       userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span></li>'
-                   }
-               });*/
-            userListHtml += '<ul><div>'
-            $('#userListOnline').html(userListHtml);
+            refresh_userlist(users)
         });
 
 
@@ -337,6 +268,17 @@
             $('#talkOrShutup').attr('Class', 'weui_btn weui_btn_mini weui_btn_primary')
             $('#messageInput').attr('disabled', 'disabled')
             $('#messageInput').attr('placeholder', '禁言中')
+        })
+
+
+        //举手事件
+        socket.on('ishandup', function (data, users) {
+            if (data.ishandup == 1) {
+                refresh_userlist(users)
+            } else if (data.ishandup == 0) {
+                refresh_userlist(users)
+            }
+            socket.emit("handup_back", data)
         })
 
 
@@ -385,12 +327,22 @@
                 socket.emit('talk', userName);
             }
         });
+        // 允许或禁止举手
+        $('#hand_up_down').click(function () {
+            if ($(this).text() === '举手发言') {
+                $(this).text('禁止举手');
+                socket.emit('hand_up_down', userName,1);
+            } else {
+                $(this).text('举手发言');
+                socket.emit('hand_up_down', userName,0);
+            }
+        });
 
         // 学生回应老师连接状态，0是断开，1是连接
         socket.on('connectingU', function (data) {
             if (data.connect_status == 0) {
                 count_connect--
-                if(count_connect==0){
+                if (count_connect == 0) {
                     disconnect_all()
                 }
                 console.log('收到学生的回应' + ' 断开连接。。。')
@@ -404,10 +356,21 @@
 
         // 教师主动断开所有连接，连接数清零
         $("#close_all_connection").click(function () {
-            socket.emit('disconnect_all_student',userName)
-            disconnect_all()
+            close_all()
         });
+
+        // 教师取消所有举手
+        $("#put_down_all_hand").click(function () {
+            socket.emit('put_down_all_hand',userName)
+        });
+
+
     })
+
+    function close_all() {
+        socket.emit('disconnect_all_student', userName)
+        disconnect_all()
+    }
 
     function connect_me(userId, name) {
         console.log('要求发言的学生姓名：' + name + ';id:' + userId)
@@ -415,7 +378,12 @@
             userId: userId,
             name: name
         }
-        socket.emit('connect_stu', stu)
+
+        if (count_connect < 4) {
+            socket.emit('connect_stu', stu)
+        } else {
+            show_max_connect_tip()
+        }
     }
 
     function disconnect_me(userId, name) {
@@ -441,6 +409,122 @@
         return '<span class="sysMsg"> ' + mon + '-' + da + ' ' + h + ':' + m + ':' + s + '</span>';
     }
 
+    /**
+     * 显示连接过多通知
+     */
+    function show_max_connect_tip() {
+        $("#talkOrShutup").hide()
+        var htmltip = "<label class='red' style='font-size: 26px;line-height: 100%;color: lightpink;'>最多同时连接4个学生 </label>"
+        $("#tips").html(htmltip)
+        setInterval(function () {
+            $("#talkOrShutup").show()
+            $("#tips").html("")
+        }, 3000);
+    }
+
+    /**
+     * 刷新房间内人员名单和连麦、举手状态
+     * @param users 房间内成员
+     */
+    function refresh_userlist(users) {
+        //初始化数据
+        userOnline['weixin'] = []
+        userOnline['pad'] = []
+        userOnline['others'] = []
+
+        var userListHtml = '<div><ul>';
+        userListHtml += '<li class="user_li">' + '<img alt="NoImg" src="/image/tea_icon.png" width="25px" height="25px">' + ' <span class="uname" > ' + userName + '</span></li>'
+
+        //学生连麦标志
+        var connect_flag = false;
+        //学生举手标志
+        var hand_flag = false;
+
+        users.forEach(function (user, index, array) {
+            if (user.userId != userId) {
+                var imagePage = '';
+                if (user.isfrom == 'wc') {//微信
+                    userOnline['weixin'].push(user)
+                } else if (user.isfrom == 'p') {//pad
+                    userOnline['pad'].push(user)
+                } else {
+                    userOnline['others'].push(user)
+                }
+
+                if (user.isconnected == 1) {
+                    connect_flag = true
+                }
+                if (user.ishandup == 1) {
+                    hand_flag = true
+                }
+            }
+        });
+
+        if (connect_flag) {
+            $("#close_all_connection").show();
+        } else {
+            $("#close_all_connection").hide();
+        }
+
+        if (hand_flag) {
+            $("#put_down_all_hand").show();
+        } else {
+            $("#put_down_all_hand").hide();
+        }
+
+
+        //举手标志，功能暂时未用
+        var handup = '<img alt="NoImg" src="/image/handup.png" width="25px" height="25px" class="handup_image">'
+
+        //pad标志，显示连麦功能
+        userOnline['pad'].forEach(function (user, index, array) {
+            var imagePage = '<img alt="NoImg" src="/image/pad.png" width="25px" height="25px">'
+
+            //未连麦状态
+            if (user.isconnected == 0) {
+                var connecting = "<img alt=\"NoImg\" src=\"/image/tel.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"connect_me('" + user.userId + "','" + user.name + "')\">"
+            }//连麦状态
+            else if (user.isconnected == 1) {
+                var connecting = "<img alt=\"NoImg\" src=\"/image/teloff.png\" width=\"25px\" height=\"25px\" class=\"connecting_image\" onclick=\"disconnect_me('" + user.userId + "','" + user.name + "')\">"
+            }
+
+            //举手状态
+            if (user.ishandup == 1) {
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span> &nbsp;&nbsp;' + connecting + handup + '</li>'
+            }//没举手
+            else {
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span> &nbsp;&nbsp;' + connecting + '</li>'
+            }
+        })
+
+
+        //wechat图标，
+        userOnline['weixin'].forEach(function (user, index, array) {
+            var imagePage = '<img alt="NoImg" src="/image/weixin.png" width="25px" height="25px">'
+            //   var connecting = '<img alt="NoImg" src="/image/tel.png" width="25px" height="25px" class="connecting_image" onclick="connect_me(user.userId,user.name)">'
+
+            //举手状态
+            if (user.ishandup == 1) {
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span> &nbsp;&nbsp;' + handup + '</li>'
+            }//没举手
+            else {
+                userListHtml += '<li class="user_li">' + imagePage + ' <span class="uname" > ' + user.name + '</span> &nbsp;&nbsp;' + '</li>'
+            }
+        })
+
+        //其他方式登录,不显示登录图标
+        userOnline['others'].forEach(function (user, index, array) {
+            //举手状态
+            if (user.ishandup == 1) {
+                userListHtml += '<li class="user_li">' + ' <span class="uname" style="margin-left: 28px;"> ' + user.name + '</span> &nbsp;&nbsp;' + handup + '</li>'
+            }//没举手
+            else {
+                userListHtml += '<li class="user_li">'+' <span class="uname" > ' + user.name + '</span> &nbsp;&nbsp;' + '</li>'
+            }
+        })
+        userListHtml += '<ul><div>'
+        $('#userListOnline').html(userListHtml);
+    }
 
 </script>
 </body>
